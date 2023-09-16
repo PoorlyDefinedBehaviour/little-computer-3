@@ -7,6 +7,11 @@ type LittleComputer3 struct {
 	// Registers from r0 to r7.
 	registers [8]int16
 	pc        int
+
+	// Condition codes
+	negative bool
+	zero     bool
+	positive bool
 }
 
 type OpCode uint8
@@ -87,6 +92,9 @@ func NewLittleComputer3() *LittleComputer3 {
 		memory:    [65536]int16{},
 		registers: [8]int16{},
 		pc:        0,
+		negative:  false,
+		zero:      false,
+		positive:  false,
 	}
 }
 
@@ -106,7 +114,13 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 			b = int16(inst.Src2)
 		}
 
-		computer.registers[inst.Dst] = a + b
+		value := a + b
+
+		computer.registers[inst.Dst] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	case OpCodeAnd:
 		inst := decodeOperateInstruction(instruction)
@@ -120,16 +134,35 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 			b = int16(inst.Src2)
 		}
 
-		computer.registers[inst.Dst] = a & b
+		value := a & b
+
+		computer.registers[inst.Dst] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	case OpCodeNot:
 		inst := decodeOperateInstruction(instruction)
 
-		computer.registers[inst.Dst] = ^computer.registers[inst.Src1]
+		value := ^computer.registers[inst.Src1]
+
+		computer.registers[inst.Dst] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	case OpCodeLd:
 		inst := decodePcRelative(instruction)
-		computer.registers[inst.Register] = computer.memory[computer.pc+int(inst.PcOffset)]
+
+		value := computer.memory[computer.pc+int(inst.PcOffset)]
+
+		computer.registers[inst.Register] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	case OpCodeSt:
 		inst := decodePcRelative(instruction)
@@ -138,7 +171,14 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 	case OpCodeLdi:
 		inst := decodePcRelative(instruction)
 		addr := computer.memory[computer.pc+int(inst.PcOffset)]
-		computer.registers[inst.Register] = computer.memory[addr]
+
+		value := computer.memory[addr]
+
+		computer.registers[inst.Register] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	case OpCodeSti:
 		inst := decodePcRelative(instruction)
@@ -148,7 +188,14 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 	case OpCodeLdr:
 		inst := decodeBaseRelative(instruction)
 		addr := computer.registers[inst.Base] + int16(inst.Offset)
-		computer.registers[inst.Register] = computer.memory[addr]
+
+		value := computer.memory[addr]
+
+		computer.registers[inst.Register] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	case OpCodeStr:
 		inst := decodeBaseRelative(instruction)
@@ -157,7 +204,14 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 
 	case OpCodeLea:
 		inst := decodePcRelative(instruction)
-		computer.registers[inst.Register] = int16(computer.pc + int(inst.PcOffset))
+
+		value := int16(computer.pc + int(inst.PcOffset))
+
+		computer.registers[inst.Register] = value
+
+		computer.zero = value == 0
+		computer.negative = value < 0
+		computer.positive = value > 0
 
 	default:
 		panic(fmt.Sprintf("unexpected instruction: %b", instruction))
