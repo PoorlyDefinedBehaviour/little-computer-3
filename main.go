@@ -40,6 +40,12 @@ const (
 	// Load effective address - computer address, save in register
 	// Immediate mode
 	OpCodeLea OpCode = 0b1110
+
+	OpCodeBr OpCode = 0b0000
+
+	OpCodeJMP OpCode = 0b1100
+
+	OpCodeTrap OpCode = 0b1111
 )
 
 func (opCode OpCode) String() string {
@@ -64,6 +70,12 @@ func (opCode OpCode) String() string {
 		return "STR"
 	case OpCodeLea:
 		return "LEA"
+	case OpCodeBr:
+		return "BR"
+	case OpCodeJMP:
+		return "JMP"
+	case OpCodeTrap:
+		return "TRAP"
 	default:
 		panic(fmt.Sprintf("unexpected opcode: %b", opCode))
 	}
@@ -85,6 +97,17 @@ type BaseRelativeInstruction struct {
 	Register uint8
 	Base     uint8
 	Offset   int8
+}
+
+type BranchInstruction struct {
+	N        bool
+	Z        bool
+	P        bool
+	PcOffset int16
+}
+
+type TrapInstruction struct {
+	TrapVector byte
 }
 
 func NewLittleComputer3() *LittleComputer3 {
@@ -213,6 +236,24 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 		computer.negative = value < 0
 		computer.positive = value > 0
 
+	case OpCodeBr:
+		inst := decodeBranchInstruction(instruction)
+
+		// TODO: only branch if set bit is set.
+		computer.pc += int(inst.PcOffset)
+
+	case OpCodeJMP:
+		inst := decodeBaseRelative(instruction)
+
+		computer.pc = int(computer.registers[inst.Base])
+
+	case OpCodeTrap:
+		_ = decodeTrapInstruction(instruction)
+
+		// TODO: call service routine
+
+		// TODO: set pc to the instruction following TRAP
+
 	default:
 		panic(fmt.Sprintf("unexpected instruction: %b", instruction))
 	}
@@ -262,6 +303,26 @@ func decodeBaseRelative(instruction uint16) BaseRelativeInstruction {
 		Base:     uint8(base),
 		Offset:   int8(offset),
 	}
+}
+
+func decodeBranchInstruction(instruction uint16) BranchInstruction {
+	n := getBits(int(instruction), 1, 12)
+	z := getBits(int(instruction), 1, 11)
+	p := getBits(int(instruction), 1, 10)
+	pcOffset := getBits(int(instruction), 9, 1)
+
+	return BranchInstruction{
+		N:        n == 1,
+		Z:        z == 1,
+		P:        p == 1,
+		PcOffset: int16(pcOffset),
+	}
+}
+
+func decodeTrapInstruction(instruction uint16) TrapInstruction {
+	trapVector := getBits(int(instruction), 8, 1)
+
+	return TrapInstruction{TrapVector: byte(trapVector)}
 }
 
 func getBits(n, k, p int) int {
