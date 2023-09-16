@@ -82,10 +82,10 @@ func (opCode OpCode) String() string {
 }
 
 type DecodedInstruction struct {
-	Dst          uint16
-	Src1         uint16
+	Dst          byte
+	Src1         byte
 	RegisterMode bool
-	Src2         uint16
+	Src2         byte
 }
 
 type PcRelativeInstruction struct {
@@ -276,10 +276,10 @@ func decodeOperateInstruction(instruction uint16) DecodedInstruction {
 	}
 
 	return DecodedInstruction{
-		Dst:          uint16(dst),
-		Src1:         uint16(src1),
+		Dst:          byte(dst),
+		Src1:         byte(src1),
 		RegisterMode: registerMode == 0,
-		Src2:         uint16(src2),
+		Src2:         byte(src2),
 	}
 }
 
