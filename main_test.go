@@ -17,6 +17,20 @@ func TestExecute(t *testing.T) {
 	assert.EqualValues(t, 30, computer.registers[0])
 }
 
+func TestSimpleLea(t *testing.T) {
+	t.Parallel()
+
+	computer := NewLittleComputer3()
+
+	computer.executeInstruction(0b1110001111111101)
+	computer.executeInstruction(0b0001010001101110)
+	computer.executeInstruction(0b0011010111111011)
+	computer.executeInstruction(0b0101010010100000)
+	computer.executeInstruction(0b0001010010100101)
+	computer.executeInstruction(0b0111010001001110)
+	computer.executeInstruction(0b1010011111110111)
+}
+
 func TestDecodeOperateInstruction(t *testing.T) {
 	t.Parallel()
 
@@ -51,4 +65,29 @@ func TestDecodeOperateInstruction(t *testing.T) {
 		fmt.Printf("instruction.Src2 %b\n", instruction.Src2)
 		assert.Equal(t, tt.expected, instruction)
 	}
+}
+
+func TestDecodePcRelative(t *testing.T) {
+	t.Parallel()
+
+	computer := NewLittleComputer3()
+	computer.executeInstruction(0b1110011110101111)
+
+	// TODO: sign extend the binary numbers, they are in 2's complement
+	// cases := []struct {
+	// 	description string
+	// 	instruction uint64
+	// 	expected    BaseRelativeInstruction
+	// }{
+	// 	{
+	// 		description: "should decode LEA",
+	// 		instruction: ,
+	// 	}
+	// }
+
+	// for _, tt := range cases {
+	// 	decodedInstruction := decodeBaseRelative(uint16(tt.instruction))
+
+	// 	assert.Equal(t, tt.expected, decodedInstruction)
+	// }
 }

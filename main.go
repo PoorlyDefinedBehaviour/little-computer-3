@@ -14,6 +14,42 @@ type LittleComputer3 struct {
 	positive bool
 }
 
+type Register byte
+
+const (
+	R0 Register = 0
+	R1 Register = 1
+	R2 Register = 2
+	R3 Register = 3
+	R4 Register = 4
+	R5 Register = 5
+	R6 Register = 6
+	R7 Register = 7
+)
+
+func (register Register) String() string {
+	switch register {
+	case R0:
+		return "R0"
+	case R1:
+		return "R1"
+	case R2:
+		return "R2"
+	case R3:
+		return "R3"
+	case R4:
+		return "R4"
+	case R5:
+		return "R5"
+	case R6:
+		return "R6"
+	case R7:
+		return "R7"
+	default:
+		return fmt.Sprintf("value: %d", register)
+	}
+}
+
 type OpCode uint8
 
 const (
@@ -82,20 +118,20 @@ func (opCode OpCode) String() string {
 }
 
 type DecodedInstruction struct {
-	Dst          byte
-	Src1         byte
+	Dst          Register
+	Src1         Register
 	RegisterMode bool
-	Src2         byte
+	Src2         Register
 }
 
 type PcRelativeInstruction struct {
-	Register uint16
+	Register Register
 	PcOffset int16
 }
 
 type BaseRelativeInstruction struct {
-	Register uint8
-	Base     uint8
+	Register Register
+	Base     Register
 	Offset   int8
 }
 
@@ -127,6 +163,7 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 	switch opcode {
 	case OpCodeAdd:
 		inst := decodeOperateInstruction(instruction)
+		fmt.Printf("\n\naaaaaaa ADD inst %+v\n\n", inst)
 
 		a := computer.registers[inst.Src1]
 
@@ -189,10 +226,12 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 
 	case OpCodeSt:
 		inst := decodePcRelative(instruction)
+		fmt.Printf("\n\naaaaaaa ST inst %+v\n\n", inst)
 		computer.memory[computer.pc+int(inst.PcOffset)] = computer.registers[inst.Register]
 
 	case OpCodeLdi:
 		inst := decodePcRelative(instruction)
+		fmt.Printf("\n\naaaaaaa LDI inst %+v\n\n", inst)
 		addr := computer.memory[computer.pc+int(inst.PcOffset)]
 
 		value := computer.memory[addr]
@@ -222,13 +261,17 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 
 	case OpCodeStr:
 		inst := decodeBaseRelative(instruction)
+		fmt.Printf("\n\naaaaaaa STR inst %+v\n\n", inst)
 		addr := computer.registers[inst.Base] + int16(inst.Offset)
 		computer.memory[addr] = computer.registers[inst.Register]
 
 	case OpCodeLea:
 		inst := decodePcRelative(instruction)
+		fmt.Printf("\n\naaaaaaa LEA inst %+v\n\n", inst)
 
+		fmt.Printf("\n\naaaaaaa computer.pc %+v\n\n", computer.pc)
 		value := int16(computer.pc + int(inst.PcOffset))
+		fmt.Printf("\n\naaaaaaa value %+v %b\n\n", value, value)
 
 		computer.registers[inst.Register] = value
 
@@ -276,19 +319,21 @@ func decodeOperateInstruction(instruction uint16) DecodedInstruction {
 	}
 
 	return DecodedInstruction{
-		Dst:          byte(dst),
-		Src1:         byte(src1),
+		Dst:          Register(dst),
+		Src1:         Register(src1),
 		RegisterMode: registerMode == 0,
-		Src2:         byte(src2),
+		Src2:         Register(src2),
 	}
 }
 
 func decodePcRelative(instruction uint16) PcRelativeInstruction {
 	dst := getBits(int(instruction), 3, 10)
+	fmt.Printf("\n\naaaaaaa instruction %b\n\n", instruction)
 	pcOffset := getBits(int(instruction), 9, 1)
+	fmt.Printf("\n\naaaaaaa pcOffset %+v %b\n\n", pcOffset, pcOffset)
 
 	return PcRelativeInstruction{
-		Register: uint16(dst),
+		Register: Register(dst),
 		PcOffset: int16(pcOffset),
 	}
 }
@@ -299,8 +344,8 @@ func decodeBaseRelative(instruction uint16) BaseRelativeInstruction {
 	offset := getBits(int(instruction), 6, 1)
 
 	return BaseRelativeInstruction{
-		Register: uint8(dst),
-		Base:     uint8(base),
+		Register: Register(dst),
+		Base:     Register(base),
 		Offset:   int8(offset),
 	}
 }
