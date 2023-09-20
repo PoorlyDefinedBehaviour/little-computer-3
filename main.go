@@ -3,9 +3,9 @@ package main
 import "fmt"
 
 type LittleComputer3 struct {
-	memory [65536]int16
+	memory [65536]uint16
 	// Registers from r0 to r7.
-	registers [8]int16
+	registers [8]uint16
 	pc        int
 
 	// Condition codes
@@ -126,7 +126,7 @@ type DecodedInstruction struct {
 
 type PcRelativeInstruction struct {
 	Register Register
-	PcOffset int16
+	PcOffset uint16
 }
 
 type BaseRelativeInstruction struct {
@@ -139,7 +139,7 @@ type BranchInstruction struct {
 	N        bool
 	Z        bool
 	P        bool
-	PcOffset int16
+	PcOffset uint16
 }
 
 type TrapInstruction struct {
@@ -148,8 +148,8 @@ type TrapInstruction struct {
 
 func NewLittleComputer3() *LittleComputer3 {
 	return &LittleComputer3{
-		memory:    [65536]int16{},
-		registers: [8]int16{},
+		memory:    [65536]uint16{},
+		registers: [8]uint16{},
 		pc:        0,
 		negative:  false,
 		zero:      false,
@@ -163,15 +163,14 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 	switch opcode {
 	case OpCodeAdd:
 		inst := decodeOperateInstruction(instruction)
-		fmt.Printf("\n\naaaaaaa ADD inst %+v\n\n", inst)
 
 		a := computer.registers[inst.Src1]
 
-		var b int16
+		var b uint16
 		if inst.RegisterMode {
 			b = computer.registers[inst.Src2]
 		} else {
-			b = int16(inst.Src2)
+			b = signExtendMask(uint16(inst.Src2), 5)
 		}
 
 		value := a + b
@@ -179,19 +178,19 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 		computer.registers[inst.Dst] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeAnd:
 		inst := decodeOperateInstruction(instruction)
 
 		a := computer.registers[inst.Src1]
 
-		var b int16
+		var b uint16
 		if inst.RegisterMode {
 			b = computer.registers[inst.Src2]
 		} else {
-			b = int16(inst.Src2)
+			b = uint16(inst.Src2)
 		}
 
 		value := a & b
@@ -199,8 +198,8 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 		computer.registers[inst.Dst] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeNot:
 		inst := decodeOperateInstruction(instruction)
@@ -210,8 +209,8 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 		computer.registers[inst.Dst] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeLd:
 		inst := decodePcRelative(instruction)
@@ -221,17 +220,17 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 		computer.registers[inst.Register] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeSt:
 		inst := decodePcRelative(instruction)
-		fmt.Printf("\n\naaaaaaa ST inst %+v\n\n", inst)
+
 		computer.memory[computer.pc+int(inst.PcOffset)] = computer.registers[inst.Register]
 
 	case OpCodeLdi:
 		inst := decodePcRelative(instruction)
-		fmt.Printf("\n\naaaaaaa LDI inst %+v\n\n", inst)
+
 		addr := computer.memory[computer.pc+int(inst.PcOffset)]
 
 		value := computer.memory[addr]
@@ -239,8 +238,8 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 		computer.registers[inst.Register] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeSti:
 		inst := decodePcRelative(instruction)
@@ -249,35 +248,32 @@ func (computer *LittleComputer3) executeInstruction(instruction uint16) {
 
 	case OpCodeLdr:
 		inst := decodeBaseRelative(instruction)
-		addr := computer.registers[inst.Base] + int16(inst.Offset)
+		addr := computer.registers[inst.Base] + uint16(inst.Offset)
 
 		value := computer.memory[addr]
 
 		computer.registers[inst.Register] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeStr:
 		inst := decodeBaseRelative(instruction)
-		fmt.Printf("\n\naaaaaaa STR inst %+v\n\n", inst)
-		addr := computer.registers[inst.Base] + int16(inst.Offset)
+
+		addr := computer.registers[inst.Base] + uint16(inst.Offset)
 		computer.memory[addr] = computer.registers[inst.Register]
 
 	case OpCodeLea:
 		inst := decodePcRelative(instruction)
-		fmt.Printf("\n\naaaaaaa LEA inst %+v\n\n", inst)
 
-		fmt.Printf("\n\naaaaaaa computer.pc %+v\n\n", computer.pc)
-		value := int16(computer.pc + int(inst.PcOffset))
-		fmt.Printf("\n\naaaaaaa value %+v %b\n\n", value, value)
+		value := uint16(computer.pc + int(inst.PcOffset))
 
 		computer.registers[inst.Register] = value
 
 		computer.zero = value == 0
-		computer.negative = value < 0
-		computer.positive = value > 0
+		computer.negative = value>>15 == 1
+		computer.positive = value>>15 == 0
 
 	case OpCodeBr:
 		inst := decodeBranchInstruction(instruction)
@@ -328,13 +324,12 @@ func decodeOperateInstruction(instruction uint16) DecodedInstruction {
 
 func decodePcRelative(instruction uint16) PcRelativeInstruction {
 	dst := getBits(int(instruction), 3, 10)
-	fmt.Printf("\n\naaaaaaa instruction %b\n\n", instruction)
+
 	pcOffset := getBits(int(instruction), 9, 1)
-	fmt.Printf("\n\naaaaaaa pcOffset %+v %b\n\n", pcOffset, pcOffset)
 
 	return PcRelativeInstruction{
 		Register: Register(dst),
-		PcOffset: int16(pcOffset),
+		PcOffset: uint16(pcOffset),
 	}
 }
 
@@ -360,7 +355,7 @@ func decodeBranchInstruction(instruction uint16) BranchInstruction {
 		N:        n == 1,
 		Z:        z == 1,
 		P:        p == 1,
-		PcOffset: int16(pcOffset),
+		PcOffset: uint16(pcOffset),
 	}
 }
 
@@ -372,6 +367,20 @@ func decodeTrapInstruction(instruction uint16) TrapInstruction {
 
 func getBits(n, k, p int) int {
 	return (((1 << k) - 1) & (n >> (p - 1)))
+}
+
+func signExtend(x uint16, n int) uint16 {
+	if (x>>(n-1))&1 > 0 {
+		x |= (0xFFFF << n)
+	}
+
+	return x
+}
+
+func signExtendMask(x uint16, n int) uint16 {
+	mask := 0xFFFF >> (16 - n)
+
+	return signExtend(x&uint16(mask), n)
 }
 
 func main() {

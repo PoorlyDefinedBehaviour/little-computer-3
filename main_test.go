@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -60,9 +59,7 @@ func TestDecodeOperateInstruction(t *testing.T) {
 
 	for _, tt := range cases {
 		instruction := decodeOperateInstruction(tt.instruction)
-		fmt.Printf("instruction.Dst %b\n", instruction.Dst)
-		fmt.Printf("instruction.Src1 %b\n", instruction.Src1)
-		fmt.Printf("instruction.Src2 %b\n", instruction.Src2)
+
 		assert.Equal(t, tt.expected, instruction)
 	}
 }
